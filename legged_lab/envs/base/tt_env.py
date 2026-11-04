@@ -207,10 +207,10 @@ class TTEnv(VecEnv):
         # ! Initialize before the buffer and the environment reset
         self.aero = AeroForceField(
             device=str(self.device), 
-            radius_m=0.020,
+            radius_m=self.ball.cfg.spawn.radius,
             air_density=1.225,
             # drag_coeff = 0.0 # ! Set to zero to disable aerodynamics
-            drag_coeff=0.4378,  # Match the real world testing
+            drag_coeff=0.4378,  # Existing PACE calibration
             magnus_factor=self.cfg.ball.magnus_factor,
         )
         # ! Aerodynamics Init : am
@@ -349,17 +349,8 @@ class TTEnv(VecEnv):
         self.robot.write_joint_effort_limit_to_sim(self.robot.data.joint_effort_limits[:, self.action_joint_ids] * self.cfg.robot.effort_limit_scale, self.action_joint_ids)
 
         self.init_obs_buffer()
-        # --- Quadratic-drag model constant for ball dynamics (scalar k) ---
-        # k = 0.5 * rho * Cd * A / m
-        try:
-            rho = 1.225  # kg/m^3
-            cd = 0.47    # sphere drag coefficient
-            radius = 0.02  # m
-            mass = 0.0027  # kg
-            area = float(np.pi) * (radius ** 2)
-            self.ball_drag_k = float(0.5 * rho * cd * area / max(1e-6, mass))
-        except Exception:
-            self.ball_drag_k = 0.13
+        mass_kg = self.ball.cfg.spawn.mass_props.mass
+        self.ball_drag_k = self.aero.drag_acceleration_coefficient(mass_kg)
 
     def update_ball_future_visual(self):
         if self.headless:
@@ -867,7 +858,7 @@ class TTEnv(VecEnv):
         self.paddle_touch_point = paddle_pos + rotated_offset # paddle_position in the world frame.
         # 5) Compute touch reward:
 
-        distance = torch.norm(self.ball_global_pos - self.paddle_touch_point, dim=1) - 0.02 # corrected for ball radius
+        distance = torch.norm(self.ball_global_pos - self.paddle_touch_point, dim=1) - self.aero.r
         self.paddel_ball_distance = distance
         contact_score = (
             self.cfg.ball.contact_threshold - distance
@@ -979,7 +970,7 @@ class TTEnv(VecEnv):
         self.mask_before = (has_bounced == 0).squeeze(-1)
         self.mask_after = (has_bounced == 1).squeeze(-1)
 
-        h = 0.78
+        h = 0.76 + self.aero.r  # Center height at contact with the table top.
         D = vz.pow(2) + 2.0 * g * (z - h)
         sqrtD = torch.sqrt(torch.clamp(D, min=0.0))
         t_land = (vz + sqrtD) / g
@@ -987,7 +978,7 @@ class TTEnv(VecEnv):
         self.valid_before = (D >= 0.0) & self.mask_before
         t1 = torch.where(self.valid_before, t_land, torch.zeros_like(t_land))
         vz_prime = vz - g * t1
-        k_scalar = torch.tensor(max(1e-8, getattr(self, 'ball_drag_k', 0.13)), device=self.device, dtype=vz.dtype)
+        k_scalar = torch.tensor(max(1e-8, self.ball_drag_k), device=self.device, dtype=vz.dtype)
 
         table = self.cfg.table
         if table.bounce_friction is None:

@@ -8,7 +8,7 @@ from legged_lab.assets import ISAAC_ASSET_DIR
 BALL_CFG = RigidObjectCfg(
     prim_path="/World/envs/env_.*/Ball",
     spawn=sim_utils.SphereCfg(
-        radius=0.02,  # Table tennis ball radius (20mm)
+        radius=0.02,  # ITTF nominal ball diameter is 40 mm (Law 2.3).
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             kinematic_enabled=False,
             disable_gravity=False,
@@ -19,21 +19,21 @@ BALL_CFG = RigidObjectCfg(
             stabilization_threshold=0.0025,
             max_depenetration_velocity=1000.0,
         ),
-        mass_props=sim_utils.MassPropertiesCfg(mass=0.0034),  # ! Vicon Table tennis ball mass (3.4g)
+        mass_props=sim_utils.MassPropertiesCfg(mass=0.0027),  # ITTF nominal mass is 2.7 g.
         collision_props=sim_utils.CollisionPropertiesCfg(
             collision_enabled=True,
             contact_offset=0.001,
             rest_offset=0.0005,
         ),
         visual_material=sim_utils.PreviewSurfaceCfg(
-            diffuse_color=(1.0, 0.0, 0.0),  # Red ball
+            diffuse_color=(1.0, 1.0, 1.0),
             metallic=0.0,
-            roughness=0.5,
+            roughness=1.0,
         ),
         physics_material=sim_utils.RigidBodyMaterialCfg(
             static_friction=0.1,
             dynamic_friction=0.1,
-            restitution=0.9,  # High bounce for table tennis ball
+            restitution=0.9,  # Existing rigid-contact material setting.
         ),
     ),
     init_state=RigidObjectCfg.InitialStateCfg(
