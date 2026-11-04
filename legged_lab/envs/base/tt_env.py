@@ -34,6 +34,7 @@ from legged_lab.utils.env_utils.scene import SceneCfg
 # ! Aerodynamics : BEGIN
 from legged_lab.physics.aerodynamics import AeroForceField
 # ! Aerodynamics : END
+from legged_lab.physics.ball_impact import resolve_ball_impact
 
 #TODO: move this functio to tt_config.py
 @configclass
@@ -209,7 +210,8 @@ class TTEnv(VecEnv):
             radius_m=0.020,
             air_density=1.225,
             # drag_coeff = 0.0 # ! Set to zero to disable aerodynamics
-            drag_coeff = 0.4378 # ! Match the real world testing
+            drag_coeff=0.4378,  # Match the real world testing
+            magnus_factor=self.cfg.ball.magnus_factor,
         )
         # ! Aerodynamics Init : am
 
@@ -714,9 +716,8 @@ class TTEnv(VecEnv):
             #         v_z[sel] = 0.0
             # except Exception:
             #     pass
-            lin_vel = torch.cat((v_x, v_y, v_z), dim=1)
-            ang_vel = torch.zeros(len(new_state_env_ids), 3, device=self.device)
-            ball_state[:, 7:] = torch.cat((lin_vel, ang_vel), dim=1)
+            ball_state[:, 7:10] = torch.cat((v_x, v_y, v_z), dim=1)
+            ball_state[:, 10:13] = ball_state.new_tensor(self.cfg.ball.serve_spin_w)
             # Store new states in buffer
             self.reset_ball_state_buf[new_state_env_ids] = ball_state
             # Apply the new state to the simulation
@@ -986,9 +987,28 @@ class TTEnv(VecEnv):
         self.valid_before = (D >= 0.0) & self.mask_before
         t1 = torch.where(self.valid_before, t_land, torch.zeros_like(t_land))
         vz_prime = vz - g * t1
-        vz_dd = -0.9 * vz_prime
-        # Drag-adjusted ascent after first bounce
         k_scalar = torch.tensor(max(1e-8, getattr(self, 'ball_drag_k', 0.13)), device=self.device, dtype=vz.dtype)
+
+        table = self.cfg.table
+        if table.bounce_friction is None:
+            vx_bounce, vy_bounce, vz_dd = 0.7 * vx, 0.7 * vy, -0.9 * vz_prime
+        else:
+            # Match the pre-bounce horizontal drag and ballistic vertical approximations.
+            vx_impact = vx / (1 + k_scalar * vx.abs() * t1)
+            vy_impact = vy / (1 + k_scalar * vy.abs() * t1)
+            incident = torch.stack((vx_impact, vy_impact, vz_prime), dim=-1)
+            rebound, _ = resolve_ball_impact(
+                incident,
+                self.ball_angvel,
+                incident.new_tensor((0.0, 0.0, 1.0)),
+                radius=self.aero.r,
+                restitution=table.bounce_restitution,
+                friction=table.bounce_friction,
+                tangential_restitution=table.bounce_tangential_restitution,
+            )
+            vx_bounce, vy_bounce, vz_dd = rebound.unbind(dim=-1)
+
+        # Drag-adjusted ascent after first bounce
         sqrt_gk = torch.sqrt(torch.clamp(torch.tensor(g, device=self.device, dtype=vz.dtype) * k_scalar, min=1e-12))
         sqrt_kg = torch.sqrt(torch.clamp(k_scalar / torch.tensor(g, device=self.device, dtype=vz.dtype), min=0.0))
         vz_up = torch.clamp(vz_dd, min=0.0)
@@ -1014,8 +1034,8 @@ class TTEnv(VecEnv):
         predict_ball_land_vis=torch.stack([self.predict_x_land, self.predict_y_land, torch.ones_like(x)*h], dim=-1)
 
 
-        dx_ascent = horiz_disp(0.7 *vx, t2_drag)
-        dy_ascent = horiz_disp(0.7 *vy, t2_drag)
+        dx_ascent = horiz_disp(vx_bounce, t2_drag)
+        dy_ascent = horiz_disp(vy_bounce, t2_drag)
         xpb = self.predict_x_land + dx_ascent
         ypb = self.predict_y_land + dy_ascent
         dx_after = horiz_disp(vx, t_after_drag)
