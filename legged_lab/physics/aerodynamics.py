@@ -13,6 +13,9 @@ class AeroForceField:
     """
     Isaac Lab adapter for the GPU-batched aerodynamic models.
     Works with either a single RigidObject (one body per env) or a RigidObjectCollection.
+
+    air_velocity_w is the optional uniform air velocity (x, y, z) in world-frame m/s.
+    By default the air is still.
     """
 
     def __init__(
@@ -23,11 +26,20 @@ class AeroForceField:
         air_density: float = 1.20,
         drag_coeff: float = 0.43,
         magnus_factor: float = 0.0,
+        *,
+        air_velocity_w: Optional[Tuple[float, float, float]] = None,
     ):
         self.device = torch.device(device)
         self.env_props = {"air_density": air_density}
         self.r = radius_m
         self.a = math.pi * (radius_m ** 2)
+
+        self._air_velocity_w = None
+        if air_velocity_w is not None:
+            air_velocity = torch.tensor(air_velocity_w, dtype=torch.float32, device=self.device)
+            if air_velocity.shape != (3,):
+                raise ValueError("air_velocity_w must contain three world-frame components")
+            self._air_velocity_w = air_velocity
 
         
         self.model = MeasuredAeroModel(device=device)
@@ -67,6 +79,9 @@ class AeroForceField:
 
         v_flat     = v_w.reshape(N, 3).to(self.device)
         omega_flat = omega_w.reshape(N, 3).to(self.device)
+        # Both drag and Magnus use the ball's velocity relative to the air.
+        if self._air_velocity_w is not None:
+            v_flat = v_flat - self._air_velocity_w.to(dtype=v_flat.dtype)
         self._ensure_buffers(N)
 
         F_flat, T_flat = self.model.calculate_forces_and_torques(
