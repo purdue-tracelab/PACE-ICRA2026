@@ -11,6 +11,7 @@
 
 import math
 from dataclasses import MISSING
+from typing import Optional
 
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.assets.rigid_object import RigidObjectCfg
@@ -77,6 +78,8 @@ class BallCfg:
     ball_reset_repeat: int = 5
     num_new_serves = 2
     max_serve_per_episode: int = 5
+    serve_spin_w: tuple[float, float, float] = (0.0, 0.0, 0.0)  # rad/s
+    magnus_factor: float = 0.0
 
 
 @configclass
@@ -87,6 +90,10 @@ class TableCfg:
     table_own_contact_x: tuple = (-1.37, 0.0)
     table_own_contact_y: tuple = (-0.7625, 0.7625)
     table_own_contact_z: tuple = (0.70, 0.85)
+    # Set bounce_friction to use the spin-aware rebound in the analytical predictor.
+    bounce_friction: Optional[float] = None
+    bounce_restitution: float = 0.9
+    bounce_tangential_restitution: float = 0.0
 
 @configclass
 class ObsScalesCfg:
