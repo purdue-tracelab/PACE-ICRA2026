@@ -160,3 +160,28 @@ F, T = model.calculate_forces_and_torques(v, w, ball_props, env_props, params)
 * `drag_coeff`: fit from deceleration vs. speed; typical spheres \~0.4–0.5.
 * `magnus_factor`: fit from lateral deflection vs. spin; `0.0` disables Magnus.
 * Use SI units and world-frame velocities.
+
+## Match ball and rebound reference
+
+The `t1_tt` ball uses the ITTF nominal diameter of 40 mm, mass of 2.7 g,
+and a matte white appearance. The simulation uses quadratic vector drag with
+the existing PACE values of 1.225 kg/m³ for air density and 0.4378 for `Cd`.
+The analytical predictor now gets `k = ρ A Cd / (2m)` from those same inputs
+and the configured ball mass, giving 0.124804 m⁻¹. Its closed-form flight
+estimate still treats the axes separately. The constant `Cd` is a PACE model
+parameter. Experimental drag can depend on speed and spin.
+
+ITTF Law 2.1.3 specifies about 230 mm rebound from a 300 mm drop onto the
+playing surface. In the one-dimensional quadratic-drag model above, that
+corresponds to a normal restitution of about 0.905. The existing analytical
+table value of 0.90 gives about 228 mm in that model. PhysX resolves contact
+using the rigid sphere and the contact materials.
+
+The separate ITTF M3 ball approval test specifies a 240–265 mm rebound from a
+305 mm drop onto a standard steel block. M3 also specifies a slow 50 N
+indentation test, with 0.68–0.81 mm at the poles for a seamed ball and
+0.70–0.90 mm for a seamless ball. These test conditions characterize ball
+hardness and steel-block rebound. Dynamic stiffness, damping, and tangential
+restitution for a particular table or racket rubber require separate data.
+
+[ITTF Laws 2.1 and 2.3](https://documents.ittf.sport/sites/default/files/public/2026-02/2026_Statutes_v1_consolidated_clean.pdf) · [ITTF M3 Ball Manual](https://equipments.ittf.com/#/equipment/manuals) · [Measured speed and spin dependence](https://arxiv.org/abs/2606.28805)

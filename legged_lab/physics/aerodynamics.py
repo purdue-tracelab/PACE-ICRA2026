@@ -49,6 +49,10 @@ class AeroForceField:
         self._ball_props = None  # dict[str, torch.Tensor]
         self._model_params = None
 
+    def drag_acceleration_coefficient(self, mass_kg: float) -> float:
+        """Return k = rho * A * Cd / (2 * mass) in inverse meters."""
+        return 0.5 * self.env_props["air_density"] * self.a * self._fixed_params["drag_coefficients"] / mass_kg
+
     def _ensure_buffers(self, batch_size: int):
         """Create constant parameter tensors on the correct device and shape (N,)."""
         # (Re)build only if sizes changed
