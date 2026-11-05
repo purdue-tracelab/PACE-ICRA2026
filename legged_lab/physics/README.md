@@ -1,6 +1,8 @@
 
 # Isaac Lab Ball Aerodynamics
 
+[External data and parameter provenance](../../docs/external-data-sources.md)
+
 
 GPU batched aerodynamic drag and Magnus forces for spinning balls in Isaac Lab. Implemented in PyTorch. Drop-in force field for `RigidObject` assets.
 
