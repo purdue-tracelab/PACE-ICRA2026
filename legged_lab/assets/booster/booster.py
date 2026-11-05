@@ -299,7 +299,7 @@ BOOSTER_T1_TT_P_CFG = ArticulationCfg(
 
 BOOSTER_T1_TT_P2_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAAC_ASSET_DIR}/booster/T1_TT/T1_TT.usd",
+        usd_path=f"{ISAAC_ASSET_DIR}/booster/T1_TT/T1_TT_allround_rubber.usda",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

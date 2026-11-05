@@ -185,3 +185,29 @@ hardness and steel-block rebound. Dynamic stiffness, damping, and tangential
 restitution for a particular table or racket rubber require separate data.
 
 [ITTF Laws 2.1 and 2.3](https://documents.ittf.sport/sites/default/files/public/2026-02/2026_Statutes_v1_consolidated_clean.pdf) · [ITTF M3 Ball Manual](https://equipments.ittf.com/#/equipment/manuals) · [Measured speed and spin dependence](https://arxiv.org/abs/2606.28805)
+
+## Symmetric allround racket rubber
+
+Both faces of the `t1_tt` racket use the same allround inverted-rubber
+approximation. The reference is andro Power 3 with a 1.8 mm sponge on the two
+blades used in the published racket 02 and 04 experiments. The collision
+geometry adds a nominal 3.3 mm per face, including sponge, topsheet and adhesive,
+as a thickness assumption. The resulting 14.5 mm cylinder uses a single contact
+material, including its rim. The original link mass and inertia are retained.
+
+A constant fit to the two published training sets gives about 0.70 normal
+restitution. With tangential restitution fixed at zero, fitting the outgoing
+tangential velocity gives 0.445 effective friction. The authored PhysX material
+values are 0.79 friction and 0.50 restitution to obtain the fitted contact values
+when averaged with the PACE ball (0.10 friction and 0.90 restitution).
+Startup randomization retains this paddle material and samples the other robot
+shapes, including the forearm collider on the same link.
+
+For offline predictions with `resolve_ball_impact`, fitting with tangential
+elasticity enabled gives 0.605 friction and 0.66 tangential restitution, with
+the same 0.70 normal restitution. On the held-out data, the tangential-speed
+RMSE was 1.43 m/s for the rigid impulse fit and 0.17 m/s with tangential
+elasticity. These are fits to the published experiments. The live PhysX
+material uses rigid contact and Coulomb friction.
+
+[Racket and rubber experiments](https://arxiv.org/abs/2604.11349) · [Public training and test data](https://github.com/gossardt/tt_rackets/tree/main/data)
