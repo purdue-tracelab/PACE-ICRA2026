@@ -1,0 +1,44 @@
+#usda 1.0
+(
+    defaultPrim = "T1_TT"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "T1_TT" (
+    prepend references = @T1_TT.usd@</T1_TT>
+)
+{
+    # With the nominal PACE ball and average combine mode, these give
+    # ball-racket friction 0.445 and normal restitution 0.70.
+    def Material "AllroundRubber" (
+        prepend apiSchemas = ["PhysicsMaterialAPI", "PhysxMaterialAPI"]
+    )
+    {
+        float physics:staticFriction = 0.79
+        float physics:dynamicFriction = 0.79
+        float physics:restitution = 0.50
+        uniform token physxMaterial:frictionCombineMode = "average"
+        uniform token physxMaterial:restitutionCombineMode = "average"
+    }
+
+    over "right_hand_link"
+    {
+        over "collisions" (
+            instanceable = false
+        )
+        {
+            over "mesh_1"
+            {
+                over "cylinder" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    # 7.9 mm existing blade proxy plus a nominal 3.3 mm per face.
+                    double height = 0.0145
+                    rel material:binding:physics = </T1_TT/AllroundRubber>
+                }
+            }
+        }
+    }
+}

@@ -237,6 +237,7 @@ class T1TableTennisEnvCfg(TTEnvCfg):
         #######################################################
         self.scene.height_scanner.prim_body_name = "Trunk"
         self.scene.robot = BOOSTER_T1_TT_P2_CFG
+        self.domain_rand.events.physics_material.func = mdp.RandomizeRobotMaterialExceptPaddle
         self.scene.table = TABLE_CFG
         self.scene.ball = BALL_CFG
         self.scene.terrain_type = "plane"
